@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  marus2_simulator:
+    container_name: marus2_container
+    # Image name built from the Dockerfile
+    image: marus2_docker:latest
+    ipc: host
+    network_mode: host
+    privileged: true
+    environment:
+      - DISPLAY=${DISPLAY}
+      - XAUTHORITY=/tmp/.Xauthority
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
+    volumes:
+      # Enable GUI passthrough (Unity/RViz) to the host display
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/tmp/.Xauthority
+      # Shared folder for easy file exchange between host and container
+      - ${HOME}/marus2_shared:/home/marus2_user/shared
+      # Access hardware devices (like joysticks or sensors)
+      - /dev:/dev
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Keeps the container running in the background
+    command: ["tail", "-f", "/dev/null"]
