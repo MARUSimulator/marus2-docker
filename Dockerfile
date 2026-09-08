@@ -4,7 +4,7 @@ FROM ros:lyrical-ros-base
 ARG USERNAME=marus2_user
 ARG UNITY_VERSION=6000.3.23f1
 ARG ROS_DISTRO=lyrical
-ENV HOME /home/$USERNAME
+ENV HOME=/home/$USERNAME
 SHELL ["/bin/bash", "-c"]
 
 # Nvidia GPU and graphics configuration (enables GPU and Vulkan passthrough)
@@ -13,7 +13,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 
 # Update system and install basic dependencies (including libraries required by Unity 6 and Vulkan)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    sudo git git-lfs wget curl pip xz-utils locales \
+    sudo git git-lfs wget curl pip xz-utils locales gnupg xvfb \
     libvulkan1 libvulkan-dev vulkan-tools \
     libglvnd0 libglx0 libegl1 libgles2 mesa-utils \
     libasound2t64 libnss3 libnspr4 libsecret-1-0 libarchive13 libcap2
@@ -23,10 +23,14 @@ RUN useradd -ms /bin/bash ${USERNAME} && adduser ${USERNAME} sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 RUN usermod -a -G sudo,dialout ${USERNAME}
 
-# Install Unity Hub for Linux
-RUN sh -c 'echo "deb https://hub.unity3d.com/linux/repos/deb stable main" > /etc/apt/sources.list.d/unityhub.list' \
- && wget -qO - https://hub.unity3d.com/linux/keys/public | apt-key add \
- && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y unityhub
+# Install Unity Hub for Linux and create a wrapper with --no-sandbox
+RUN install -d -m 0755 /etc/apt/keyrings \
+ && wget -qO - https://hub.unity3d.com/linux/keys/public | gpg --dearmor -o /etc/apt/keyrings/unityhub.gpg \
+ && chmod 644 /etc/apt/keyrings/unityhub.gpg \
+ && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/unityhub.gpg] https://hub.unity3d.com/linux/repos/deb stable main" > /etc/apt/sources.list.d/unityhub.list \
+ && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y unityhub \
+ && printf '#!/bin/bash\nexec /usr/bin/unityhub --no-sandbox "$@"\n' > /usr/local/bin/unityhub \
+ && chmod +x /usr/local/bin/unityhub
 
 USER ${USERNAME}
 
@@ -42,7 +46,8 @@ RUN mkdir -p ${HOME}/Unity/Hub/Editor/${UNITY_VERSION} \
  && rm Unity-${UNITY_VERSION}.tar.xz
 
 # Register the installed Unity Editor within Unity Hub
-RUN unityhub -- --headless editors --add --path ${HOME}/Unity/Hub/Editor/${UNITY_VERSION}/Editor/Unity
+RUN xvfb-run -a unityhub --no-sandbox --headless editors --add --path ${HOME}/Unity/Hub/Editor/${UNITY_VERSION}/Editor/Unity \
+ || xvfb-run -a unityhub --no-sandbox -- --headless editors --add --path ${HOME}/Unity/Hub/Editor/${UNITY_VERSION}/Editor/Unity
 
 # Clone MARUS 2.0 example project and update its submodules
 RUN git clone https://github.com/MARUSimulator/marus2-example.git \
@@ -63,7 +68,7 @@ RUN git clone https://github.com/MARUSimulator/marus2_ros_adapter.git \
 # Clone sensor messages repository (uuv_sensor_msgs)
 RUN git clone https://github.com/labust/uuv_sensor_msgs.git \
  && cd uuv_sensor_msgs \
- && (git checkout lyrical || git checkout master || git checkout main)
+ && (git checkout lyrical || git checkout humble || git checkout main)
 
 # Build the ROS 2 workspace using colcon
 WORKDIR ${HOME}/ros2_ws

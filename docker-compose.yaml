@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   marus2_simulator:
     container_name: marus2_container

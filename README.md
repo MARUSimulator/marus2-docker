@@ -34,8 +34,8 @@ Choose one of the following options to launch the container:
 #### Option A: Using the Automated Script (Recommended)
 The helper script sets display permissions, verifies Nvidia drivers, prepares a shared directory (`~/marus2_shared`), and brings up the container:
 ```bash
-chmod +x run_simulator.sh
-./run_simulator.sh
+chmod +x run_marus.sh
+./run_marus.sh
 ```
 
 #### Option B: Running Manually
