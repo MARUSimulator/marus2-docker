@@ -1,75 +1,86 @@
-# MARUS2 - Docker Guide
+# MARUS 2.0 - Docker Guide (ROS 2 Environment)
 
-## 📋 Prerequisites & Host Setup
+This repository provides a lightweight, containerized **ROS 2 Lyrical** environment for the **MARUS 2.0 Maritime Simulator**.
 
-Before proceeding, ensure your host machine has an **Nvidia GPU** with the latest drivers installed.
-
-### 1. Install Nvidia Container Toolkit
-To allow your Docker container to access the physical GPU on your host machine for rendering Unity 6 and RViz 2, install the **Nvidia Container Toolkit** on your host:
-
-
-[https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-
+### 🏛️ Architecture Overview
+- **Docker Container (ROS 2)**: Runs ROS 2 Lyrical, the `marus2_ros_adapter` gRPC communication bridge, and custom sensor messages (`uuv_sensor_msgs`).
+- **Host Machine (Unity 6)**: Runs Unity 6 with the `marus2-example` simulation scene natively on your host OS.
+- **Communication**: Because Docker runs in `network_mode: host`, Unity connects directly to the ROS 2 adapter over `localhost` (port 50051) with zero configuration or port forwarding needed.
 
 ---
 
-## 🚀 Quick Start Steps
+## 📋 Prerequisites
 
-### 1. Clone the Repository
-Clone this configuration repository and navigate to its root folder:
+1. **Docker & Docker Compose** installed on your host machine.
+2. **Unity 6** (version `6000.x`) installed on your host machine via Unity Hub.
+3. The **[marus2-example](https://github.com/MARUSimulator/marus2-example)** Unity project cloned on your host:
+   ```bash
+   git clone --recurse-submodules https://github.com/MARUSimulator/marus2-example.git
+   ```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Build the Docker Image
+Build the lightweight ROS 2 container (takes ~1-2 minutes):
 ```bash
-git clone https://github.com/MARUSimulator/marus2-docker.git
-cd marus2-docker
+docker compose build
 ```
+*(or: `docker build -t marus2_docker:latest .`)*
 
-### 2. Build the Docker Image
-Since all packages are cloned via HTTPS, the build command is incredibly simple and **no longer requires passing your private SSH keys**:
-```bash
-docker build -t marus2_docker:latest .
-```
-
-### 3. Start the Environment
-Choose one of the following options to launch the container:
-
-#### Option A: Using the Automated Script (Recommended)
-The helper script sets display permissions, verifies Nvidia drivers, prepares a shared directory (`~/marus2_shared`), and brings up the container:
+### 2. Start the ROS 2 Container
+Run the startup script:
 ```bash
 chmod +x run_marus.sh
 ./run_marus.sh
 ```
-
-#### Option B: Running Manually
-```bash
-# Allow local container connections to your display server (for GUI support)
-xhost +local:docker
-
-# Launch the container in the background
-docker compose up -d
-```
+*(or simply: `docker compose up -d`)*
 
 ---
 
-## 🎮 Launching the Simulation
+## 🎮 Running the Simulation
 
-### 1. Access the Container
-Connect to the interactive terminal of your running container:
+### Step 1: Start the ROS 2 Environment
+Execute the launch script:
 ```bash
-docker compose exec marus2_simulator bash
+./run_marus.sh
 ```
+The ROS 2 adapter gRPC server starts **automatically** inside the container and immediately begins listening for Unity on `localhost:50051`.
 
-### 2. Run the ROS 2 Lyrical Adapter
-Inside the container terminal, launch the adapter server:
-```bash
-ros2 launch marus2_ros_adapter ros2_server_launch.py
-```
+### Step 2: Start the Simulation (On Host)
+1. Open **Unity Hub** on your host machine.
+2. Open the **`marus2-example`** project.
+3. Open the example scene and press the **Play** button at the top of the Unity Editor.
+4. Unity connects immediately to the ROS 2 adapter in real-time!
 
-### 3. Start Unity 6 and Load the Simulator
-Open a new terminal window on your host computer, connect to the container again, and launch Unity Hub:
-```bash
-docker compose exec marus2_simulator bash
-unityhub
-```
-Inside the Unity Hub graphical interface:
-1. Click **Add** (or **Add project from disk**).
-2. Browse and select the pre-configured project located at: `/home/marus2_user/marus2-example`.
-3. Open the project with **Unity 6 (6000.3.23f1)** and press **Play** to start the simulation
+---
+
+## 🛠️ Helpful Commands
+
+- **Follow live ROS adapter logs**:
+  ```bash
+  docker compose logs -f
+  ```
+- **Open interactive terminal in container** (e.g. to inspect topics or run ROS nodes):
+  ```bash
+  docker compose exec marus2_simulator bash
+  # e.g., ros2 topic list
+  ```
+- **Install dependencies for newly added ROS packages (`rosdep`)**:
+  ```bash
+  docker compose exec marus2_simulator bash
+  cd ~/ros2_ws
+  rosdep update
+  rosdep install --from-paths src --ignore-src -y
+  colcon build
+  ```
+- **Stop the environment**:
+  ```bash
+  docker compose down
+  ```
+
+---
+
+## 📁 Shared Folder
+A directory named `~/marus2_shared` is created on your host computer and mounted to `/home/marus2_user/shared` inside the container. Use this to exchange ROS bag files, launch files, and datasets between host and container.
