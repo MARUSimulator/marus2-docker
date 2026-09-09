@@ -5,7 +5,7 @@ This repository provides a lightweight, containerized **ROS 2 Lyrical** environm
 ### 🏛️ Architecture Overview
 - **Docker Container (ROS 2)**: Runs ROS 2 Lyrical, the `marus2_ros_adapter` gRPC communication bridge, and custom sensor messages (`uuv_sensor_msgs`).
 - **Host Machine (Unity 6)**: Runs Unity 6 with the `marus2-example` simulation scene natively on your host OS.
-- **Communication**: Because Docker runs in `network_mode: host`, Unity connects directly to the ROS 2 adapter over `localhost` (port 50051) with zero configuration or port forwarding needed.
+- **Communication**: Because Docker runs in `network_mode: host`, Unity connects directly to the ROS 2 adapter over `localhost` (port 30052) with zero configuration or port forwarding needed.
 
 ---
 
@@ -46,7 +46,7 @@ Execute the launch script:
 ```bash
 ./run_marus.sh
 ```
-The ROS 2 adapter gRPC server starts **automatically** inside the container and immediately begins listening for Unity on `localhost:50051`.
+The ROS 2 adapter gRPC server starts **automatically** inside the container and immediately begins listening for Unity on `localhost:30052`.
 
 ### Step 2: Start the Simulation (On Host)
 1. Open **Unity Hub** on your host machine.
