@@ -22,12 +22,20 @@ This repository provides a lightweight, containerized **ROS 2 Lyrical** environm
 
 ## 🚀 Quick Start
 
-### 1. Build the Docker Image
-Build the lightweight ROS 2 container (takes ~1-2 minutes):
+### 1. Obtain the Docker Image
+
+You can either pull the official pre-built image from GitHub Container Registry (recommended) or build it locally.
+
+**Option A: Pull Pre-built Image (Fastest)**
 ```bash
-docker compose build
+docker pull ghcr.io/marusimulator/marus2-docker:latest
+docker tag ghcr.io/marusimulator/marus2-docker:latest marus2_docker:latest
 ```
-*(or: `docker build -t marus2_docker:latest .`)*
+
+**Option B: Build Locally from Source**
+```bash
+docker build -t marus2_docker:latest .
+```
 
 ### 2. Start the ROS 2 Container
 Run the startup script:
@@ -84,3 +92,16 @@ The ROS 2 adapter gRPC server starts **automatically** inside the container and 
 
 ## 📁 Shared Folder
 A directory named `~/marus2_shared` is created on your host computer and mounted to `/home/marus2_user/shared` inside the container. Use this to exchange ROS bag files, launch files, and datasets between host and container.
+
+---
+
+## 🔄 Automated Builds (CI/CD)
+
+This repository automatically builds and publishes the Docker image to the **GitHub Container Registry (GHCR)** via GitHub Actions ([.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml)):
+
+- **Image Registry**: `ghcr.io/marusimulator/marus2-docker`
+- **Automatic Triggers**:
+  - Pushes to the `main` branch (published as `:latest` and `:sha-<commit>`)
+  - Semantic version tags like `v1.0.0` (published as `:1.0.0`, `:1.0`, and `:v1.0.0`)
+- **Layer Caching**: GitHub Actions cache (`type=gha`) is enabled to speed up iterative rebuilds.
+
