@@ -1,7 +1,8 @@
 services:
   marus2_simulator:
     container_name: marus2_container
-    image: marus2_docker:latest
+    image: ghcr.io/marusimulator/marus2-docker:latest
+    build: .
     ipc: host
     network_mode: host
     privileged: true

@@ -23,25 +23,18 @@ RUN [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || rosdep init
 
 USER ${USERNAME}
 
-# Configure Git to automatically rewrite git@ SSH URLs to HTTPS.
-# This prevents submodule updates from failing if they are configured as SSH in upstream repositories.
-RUN git config --global url."https://github.com/".insteadOf "git@github.com:"
+# Copy ROS 2 packages from repository source (submodules)
+WORKDIR ${HOME}/ros2_ws
+COPY --chown=${USERNAME}:${USERNAME} src/ ${HOME}/ros2_ws/src/
 
-# Set up ROS 2 workspace
-RUN mkdir -p ${HOME}/ros2_ws/src
+# Verify submodules were initialized
+RUN if [ ! -f "${HOME}/ros2_ws/src/marus2_ros_adapter/requirements.txt" ]; then \
+        echo "ERROR: Submodules not found. Please clone with '--recurse-submodules' or run 'git submodule update --init --recursive'" >&2; \
+        exit 1; \
+    fi
 
-# Clone and configure marus2_ros_adapter for Unity-ROS communication
-WORKDIR ${HOME}/ros2_ws/src
-RUN git clone https://github.com/MARUSimulator/marus2_ros_adapter.git \
- && cd marus2_ros_adapter \
- && (git checkout lyrical || git checkout master || git checkout main) \
- && pip install -r requirements.txt --break-system-packages \
- && git submodule update --init --recursive
-
-# Clone sensor messages repository (uuv_sensor_msgs)
-RUN git clone https://github.com/labust/uuv_sensor_msgs.git \
- && cd uuv_sensor_msgs \
- && (git checkout lyrical || git checkout humble || git checkout main)
+# Install Python dependencies for marus2_ros_adapter
+RUN pip install -r ${HOME}/ros2_ws/src/marus2_ros_adapter/requirements.txt --break-system-packages
 
 # Update rosdep and install all workspace package dependencies
 WORKDIR ${HOME}/ros2_ws

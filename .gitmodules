@@ -1,0 +1,8 @@
+[submodule "src/marus2_ros_adapter"]
+	path = src/marus2_ros_adapter
+	url = https://github.com/MARUSimulator/marus2_ros_adapter.git
+	branch = main
+[submodule "src/uuv_sensor_msgs"]
+	path = src/uuv_sensor_msgs
+	url = https://github.com/labust/uuv_sensor_msgs.git
+	branch = humble

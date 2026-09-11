@@ -1,18 +1,15 @@
-# MARUS 2.0 - Docker Guide (ROS 2 Environment)
+# MARUS 2.0 - Docker Environment
 
-This repository provides a lightweight, containerized **ROS 2 Lyrical** environment for the **MARUS 2.0 Maritime Simulator**.
+A plug-and-play **ROS 2 Lyrical** container for the **MARUS 2.0 Simulator**.
 
-### 🏛️ Architecture Overview
-- **Docker Container (ROS 2)**: Runs ROS 2 Lyrical, the `marus2_ros_adapter` gRPC communication bridge, and custom sensor messages (`uuv_sensor_msgs`).
-- **Host Machine (Unity 6)**: Runs Unity 6 with the `marus2-example` simulation scene natively on your host OS.
-- **Communication**: Because Docker runs in `network_mode: host`, Unity connects directly to the ROS 2 adapter over `localhost` (port 30052) with zero configuration or port forwarding needed.
+This environment comes pre-configured with ROS 2, the `marus2_ros_adapter` gRPC bridge. It allows you to run simulations seamlessly with Unity 6 without needing to install ROS 2 or Linux on your host machine.
 
 ---
 
 ## 📋 Prerequisites
 
-1. **Docker & Docker Compose** installed on your host machine.
-2. **Unity 6** (version `6000.x`) installed on your host machine via Unity Hub.
+1. **Docker & Docker Compose** installed and running on your host machine
+2. **Unity 6** (version `6000.5`) installed via Unity Hub.
 3. The **[marus2-example](https://github.com/MARUSimulator/marus2-example)** Unity project cloned on your host:
    ```bash
    git clone --recurse-submodules https://github.com/MARUSimulator/marus2-example.git
@@ -20,88 +17,94 @@ This repository provides a lightweight, containerized **ROS 2 Lyrical** environm
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Running the Simulation)
 
-### 1. Obtain the Docker Image
+### Step 1: Start the ROS 2 Environment
+From the `marus2-docker` directory, run the launch script:
 
-You can either pull the official pre-built image from GitHub Container Registry (recommended) or build it locally.
-
-**Option A: Pull Pre-built Image (Fastest)**
-```bash
-docker pull ghcr.io/marusimulator/marus2-docker:latest
-docker tag ghcr.io/marusimulator/marus2-docker:latest marus2_docker:latest
-```
-
-**Option B: Build Locally from Source**
-```bash
-docker build -t marus2_docker:latest .
-```
-
-### 2. Start the ROS 2 Container
-Run the startup script:
 ```bash
 chmod +x run_marus.sh
 ./run_marus.sh
 ```
-*(or simply: `docker compose up -d`)*
 
----
+*(On the first run, Docker automatically downloads the pre-built image from GitHub Container Registry. No manual build required!)*
 
-## 🎮 Running the Simulation
+The ROS adapter starts automatically inside the container and begins listening on `localhost:30052`.
 
-### Step 1: Start the ROS 2 Environment
-Execute the launch script:
-```bash
-./run_marus.sh
-```
-The ROS 2 adapter gRPC server starts **automatically** inside the container and immediately begins listening for Unity on `localhost:30052`.
+> 💡 **Tip**: To run in the background (detached mode), use `./run_marus.sh -d`.
 
-### Step 2: Start the Simulation (On Host)
-1. Open **Unity Hub** on your host machine.
+### Step 2: Start the Simulation in Unity
+1. Open **Unity Hub** on your host computer.
 2. Open the **`marus2-example`** project.
 3. Open the example scene and press the **Play** button at the top of the Unity Editor.
-4. Unity connects immediately to the ROS 2 adapter in real-time!
+4. Unity will automatically connect to the ROS 2 adapter!
 
 ---
 
-## 🛠️ Helpful Commands
+## 🛠️ Interacting with ROS 2
 
-- **Follow live ROS adapter logs**:
+While the container is running, you can inspect topics, run nodes, or launch graphical tools:
+
+- **Open an interactive shell in the container**:
+  ```bash
+  docker compose exec marus2_simulator bash
+  ```
+  *(ROS 2 environments and workspace setups are sourced automatically)*
+
+- **List active ROS 2 topics**:
+  ```bash
+  docker compose exec marus2_simulator ros2 topic list
+  ```
+
+- **Echo a topic**:
+  ```bash
+  docker compose exec marus2_simulator ros2 topic echo /marus/pose
+  ```
+
+- **View live adapter logs**:
   ```bash
   docker compose logs -f
   ```
-- **Open interactive terminal in container** (e.g. to inspect topics or run ROS nodes):
-  ```bash
-  docker compose exec marus2_simulator bash
-  # e.g., ros2 topic list
-  ```
-- **Install dependencies for newly added ROS packages (`rosdep`)**:
-  ```bash
-  docker compose exec marus2_simulator bash
-  cd ~/ros2_ws
-  rosdep update
-  rosdep install --from-paths src --ignore-src -y
-  colcon build
-  ```
-- **Stop the environment**:
+
+- **Stop the simulation container**:
   ```bash
   docker compose down
   ```
 
 ---
 
-## 📁 Shared Folder
-A directory named `~/marus2_shared` is created on your host computer and mounted to `/home/marus2_user/shared` inside the container. Use this to exchange ROS bag files, launch files, and datasets between host and container.
+## 📁 Shared Folder (`~/marus2_shared`)
+
+A shared directory is automatically prepared on your host machine:
+```text
+~/marus2_shared
+```
+This folder is mapped to `/home/marus2_user/shared` inside the container. Use it to easily exchange ROS bag recordings, custom launch files, scripts, and logs between your host and the container.
 
 ---
 
-## 🔄 Automated Builds (CI/CD)
+## 🔧 Building from Source (For Developers)
 
-This repository automatically builds and publishes the Docker image to the **GitHub Container Registry (GHCR)** via GitHub Actions ([.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml)):
+If you want to modify the ROS adapter or sensor packages locally instead of using the pre-built image:
 
-- **Image Registry**: `ghcr.io/marusimulator/marus2-docker`
-- **Automatic Triggers**:
-  - Pushes to the `main` branch (published as `:latest` and `:sha-<commit>`)
-  - Semantic version tags like `v1.0.0` (published as `:1.0.0`, `:1.0`, and `:v1.0.0`)
-- **Layer Caching**: GitHub Actions cache (`type=gha`) is enabled to speed up iterative rebuilds.
+1. **Clone the repository with submodules**:
+   ```bash
+   git clone --recurse-submodules https://github.com/MARUSimulator/marus2-docker.git
+   ```
+   *(If already cloned without submodules, run: `git submodule update --init --recursive`)*
 
+2. **Build the image locally**:
+   ```bash
+   docker compose build
+   ```
+
+3. **Launch your local build**:
+   ```bash
+   ./run_marus.sh
+   ```
+
+### Developer Details
+- **`src/marus2_ros_adapter`**: ROS 2 to Unity gRPC communication bridge.
+- **`src/uuv_sensor_msgs`**: Custom underwater vehicle sensor message definitions.
+- **Automated Updates**: [Dependabot](.github/dependabot.yml) checks daily for upstream updates to submodules and opens pull requests.
+- **CI/CD**: Merging or tagging triggers the [GitHub Actions workflow](.github/workflows/docker-publish.yml) to publish a new image to `ghcr.io/marusimulator/marus2-docker`.
