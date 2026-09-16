@@ -28,13 +28,10 @@ WORKDIR ${HOME}/ros2_ws
 COPY --chown=${USERNAME}:${USERNAME} src/ ${HOME}/ros2_ws/src/
 
 # Verify submodules were initialized
-RUN if [ ! -f "${HOME}/ros2_ws/src/marus2_ros_adapter/requirements.txt" ]; then \
+RUN if [ ! -f "${HOME}/ros2_ws/src/marus2_ros_adapter/package.xml" ]; then \
         echo "ERROR: Submodules not found. Please clone with '--recurse-submodules' or run 'git submodule update --init --recursive'" >&2; \
         exit 1; \
     fi
-
-# Install Python dependencies for marus2_ros_adapter
-RUN pip install -r ${HOME}/ros2_ws/src/marus2_ros_adapter/requirements.txt --break-system-packages
 
 # Update rosdep and install all workspace package dependencies
 WORKDIR ${HOME}/ros2_ws
@@ -44,14 +41,14 @@ RUN rosdep update \
  && sudo rm -rf /var/lib/apt/lists/*
 
 # Build the ROS 2 workspace using colcon
-RUN source /opt/ros/lyrical/setup.bash && colcon build
+RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --symlink-install
 
 # Source ROS 2 environments automatically on shell startup
-RUN echo -e "source /opt/ros/lyrical/setup.bash\nsource ${HOME}/ros2_ws/install/setup.bash" >> ${HOME}/.bashrc
+RUN echo -e "source /opt/ros/${ROS_DISTRO}/setup.bash\nsource ${HOME}/ros2_ws/install/setup.bash" >> ${HOME}/.bashrc
 
 # Create convenience launcher shortcut for ROS adapter
 USER root
-RUN printf '#!/bin/bash\nsource /opt/ros/lyrical/setup.bash\nsource /home/%s/ros2_ws/install/setup.bash\nexec ros2 launch marus2_ros_adapter ros2_server_launch.py "$@"\n' "${USERNAME}" > /usr/local/bin/launch_adapter \
+RUN printf '#!/bin/bash\nsource /opt/ros/%s/setup.bash\nsource /home/%s/ros2_ws/install/setup.bash\nexec ros2 launch marus2_ros_adapter ros2_server_launch.py "$@"\n' "${ROS_DISTRO}" "${USERNAME}" > /usr/local/bin/launch_adapter \
  && chmod +x /usr/local/bin/launch_adapter
 
 USER ${USERNAME}

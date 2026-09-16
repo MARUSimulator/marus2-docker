@@ -5,4 +5,4 @@
 [submodule "src/uuv_sensor_msgs"]
 	path = src/uuv_sensor_msgs
 	url = https://github.com/labust/uuv_sensor_msgs.git
-	branch = humble
+	branch = ros2
